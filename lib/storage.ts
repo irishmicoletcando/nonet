@@ -163,6 +163,8 @@ export function update(fn: (s: NonetStore) => NonetStore): void {
 }
 
 function onStorageEvent(e: StorageEvent) {
+  // In memory-only mode the cache is the only copy, so dropping it would wipe the session.
+  if (memoryOnly) return;
   if (e.key !== null && e.key !== STORAGE_KEY) return;
   cache = null;
   listeners.forEach((l) => l());
