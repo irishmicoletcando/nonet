@@ -1,0 +1,158 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------- technique row: scrolls inside itself on narrow screens ---------- */
+.techScroll {
+  max-width: 100%;
+  overflow-x: auto;
+  /* room for focus rings and the scrollbar */
+  padding: 5px 5px 8px;
+  margin: -5px -5px -8px;
+}
+
+.techRow {
+  display: flex;
+  gap: 6px;
+}
+
+.techButton {
+  display: flex;
+  flex: 1 0 104px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 64px;
+  padding: 8px 10px;
+  border: 2px solid var(--rule);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.techButton:hover {
+  border-color: var(--ink);
+}
+
+.techButton[aria-pressed="true"] {
+  border-color: var(--red);
+  background: var(--board);
+  font-weight: 900;
+}
+
+.techName {
+  overflow-wrap: break-word;
+}
+
+.techScore {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- layout ---------- */
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.boardCol {
+  flex: 0 1 546px;
+  min-width: min(100%, 300px);
+}
+
+.side {
+  display: flex;
+  flex: 1 1 300px;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  max-width: 440px;
+}
+
+@media (max-width: 899px) {
+  .side {
+    max-width: 546px;
+  }
+}
+
+.drillCount {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.task {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.progress {
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-box);
+  background: var(--board);
+  overflow: hidden;
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+}
+
+.making {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+}
+
+/* ---------- result ---------- */
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 2px solid var(--green);
+  border-radius: var(--radius-box);
+  background: var(--tint-mint);
+  line-height: 1.45;
+}
+
+.result[data-correct="false"] {
+  border-color: var(--error);
+  background: var(--tint-pink);
+}
+
+.resultTitle {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}

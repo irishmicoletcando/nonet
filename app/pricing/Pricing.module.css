@@ -1,0 +1,175 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* ---------- plans: columns split by rules, not cards ---------- */
+.plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 2px solid var(--ink);
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 20px 28px;
+  border-left: var(--rule-w) solid var(--rule);
+}
+
+.plan:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.plan[data-best] {
+  position: relative;
+  /* 22px + the 2px border keeps this column level with the others */
+  padding-top: 22px;
+  padding-left: 18px;
+  padding-right: 18px;
+  border: 2px solid var(--red);
+  border-radius: var(--radius-box);
+  background: var(--surface);
+}
+
+/* the column after Yearly keeps its own rule off the red border */
+.plan[data-best] + .plan {
+  border-left: 0;
+}
+
+.planHead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* sits on the red border so it does not push the plan's content down */
+.best {
+  position: absolute;
+  top: -12px;
+  left: 16px;
+  display: flex;
+}
+
+.planName {
+  font-size: 22px;
+}
+
+.price {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+}
+
+.amount {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.period {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.note {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.cta {
+  width: 100%;
+  padding: 0 12px;
+}
+
+.features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: var(--rule-w) solid var(--rule);
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.features li[data-included="false"] {
+  color: var(--muted);
+}
+
+.mark {
+  display: inline-flex;
+  flex: none;
+  padding-top: 1px;
+}
+
+.features li[data-included="true"] .mark {
+  color: var(--green);
+}
+
+@media (max-width: 899px) {
+  .plans {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .plan,
+  .plan:first-child {
+    padding: 22px 0 26px;
+    border-left: 0;
+    border-top: var(--rule-w) solid var(--rule);
+  }
+
+  .plan:first-child {
+    border-top: 0;
+  }
+
+  .plan[data-best] {
+    margin: 14px 0 8px;
+    padding: 20px 16px 24px;
+    border: 2px solid var(--red);
+  }
+
+  .plan[data-best] + .plan {
+    border-top: 0;
+  }
+}
+
+/* ---------- FAQ ---------- */
+.faq {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.faq dl {
+  margin: 0;
+  border-top: 2px solid var(--ink);
+}
+
+.faqItem {
+  padding: 14px 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.faqItem dt {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.faqItem dd {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
