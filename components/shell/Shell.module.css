@@ -92,8 +92,9 @@
   .sidebar[data-open="true"] {
     display: flex;
     position: sticky;
-    top: 0;
     inset: auto;
+    top: 0;
+    align-self: start;
     z-index: auto;
     width: var(--sidebar-w);
     height: 100vh;
