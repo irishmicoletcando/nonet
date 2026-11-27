@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from "react";
 import { Board } from "@/components/board/Board";
 import { BoardSkeleton } from "@/components/board/BoardSkeleton";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -9,10 +9,14 @@ import { dailySeed, parseGrid, type Analysis } from "@/lib/engine";
 import { positionBefore } from "@/lib/drills";
 import { dateKey } from "@/lib/progress";
 import { update } from "@/lib/storage";
-import { STALE, runEngine, useEngine } from "@/lib/worker/useEngine";
+import { EngineAborted, EngineTimeout, reviewIsolated } from "@/lib/worker/isolated";
+import { runEngine } from "@/lib/worker/useEngine";
 import { StepList } from "./StepList";
 import { TechniqueChart } from "./TechniqueChart";
 import styles from "./Review.module.css";
+
+/** A normal review takes well under a second; past this the check is abandoned. */
+const REVIEW_TIMEOUT_MS = 6000;
 
 /** Same normalisation as parseGrid, so the count matches what it saw. */
 const countCells = (s: string) => s.replace(/[.\-_*]/g, "0").replace(/[^0-9]/g, "").length;
@@ -42,7 +46,6 @@ interface Result {
 }
 
 function Review({ initial }: { initial: string }) {
-  const engine = useEngine();
   const inputId = useId();
   const errorId = useId();
   const [text, setText] = useState(initial);
@@ -51,45 +54,57 @@ function Review({ initial }: { initial: string }) {
   const [result, setResult] = useState<Result | null>(null);
   const [k, setK] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+  // The in-flight check. Aborting terminates its dedicated worker.
+  const inflight = useRef<AbortController | null>(null);
 
-  const run = useCallback(
-    async (input: string) => {
-      const grid = parseGrid(input);
-      if (!grid) {
-        engine.cancel();
-        setBusy(false);
-        setResult(null);
-        setError(`That is not 81 cells. Found ${countCells(input)} digits.`);
+  const run = useCallback(async (input: string) => {
+    inflight.current?.abort();
+    inflight.current = null;
+    const grid = parseGrid(input);
+    if (!grid) {
+      setBusy(false);
+      setResult(null);
+      setError(`That is not 81 cells. Found ${countCells(input)} digits.`);
+      return;
+    }
+    const ctrl = new AbortController();
+    inflight.current = ctrl;
+    setError(null);
+    setResult(null);
+    setBusy(true);
+    try {
+      const r = await reviewIsolated(grid, { timeoutMs: REVIEW_TIMEOUT_MS, signal: ctrl.signal });
+      if (ctrl.signal.aborted) return;
+      setBusy(false);
+      if (r.solutions !== 1 || !r.analysis) {
+        setError("This puzzle has no unique solution.");
         return;
       }
-      setError(null);
-      setBusy(true);
-      try {
-        const r = await engine.request({ type: "review", grid });
-        if (r === STALE) return;
-        setBusy(false);
-        if (r.solutions !== 1 || !r.analysis) {
-          setResult(null);
-          setError("This puzzle has no unique solution.");
-          return;
-        }
-        setResult({ puzzle: grid, analysis: r.analysis });
-        setK(0);
-        setSelected(null);
-        void markIfDaily(grid);
-      } catch {
-        setBusy(false);
-        setError("Could not review this puzzle. Try again.");
-      }
-    },
-    [engine],
-  );
+      setResult({ puzzle: grid, analysis: r.analysis });
+      setK(0);
+      setSelected(null);
+      void markIfDaily(grid);
+    } catch (err) {
+      if (err instanceof EngineAborted || ctrl.signal.aborted) return;
+      setBusy(false);
+      setError(
+        err instanceof EngineTimeout
+          ? "This puzzle took too long to check, so the review stopped. It may have very few clues or many solutions. Check the digits and try again."
+          : "Could not review this puzzle. Try again.",
+      );
+    } finally {
+      if (inflight.current === ctrl) inflight.current = null;
+    }
+  }, []);
 
-  // Auto-run a puzzle passed in the link.
+  // Auto-run a puzzle passed in the link. Unmounting stops any check in flight.
   useEffect(() => {
     if (initial) void run(initial);
-    return () => engine.cancel();
-  }, [initial, run, engine]);
+    return () => {
+      inflight.current?.abort();
+      inflight.current = null;
+    };
+  }, [initial, run]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -131,7 +146,7 @@ function Review({ initial }: { initial: string }) {
           </p>
         ) : null}
         <div>
-          <Button type="submit" variant="primary" disabled={busy}>
+          <Button type="submit" variant="primary">
             Review
           </Button>
         </div>
