@@ -8,12 +8,15 @@ import {
   type Analysis,
   type Difficulty,
   type Puzzle,
+  type Technique,
 } from "../engine";
+import { buildDrill, type Drill } from "../drills";
 
 export type EngineRequest =
   | { type: "generate"; difficulty: Difficulty; seed: number }
   | { type: "analyze"; grid: number[] }
-  | { type: "review"; grid: number[] };
+  | { type: "review"; grid: number[] }
+  | { type: "drill"; technique: Technique; seed: number };
 
 export interface ReviewResult {
   /** 0, 1 or 2 (2 = more than one). */
@@ -26,6 +29,7 @@ export interface EngineResultMap {
   generate: Puzzle;
   analyze: Analysis;
   review: ReviewResult;
+  drill: Drill | null;
 }
 
 export type EngineResult<R extends EngineRequest> = EngineResultMap[R["type"]];
@@ -40,6 +44,8 @@ export function runTask(req: EngineRequest): EngineResultMap[EngineRequest["type
       const solutions = countSolutions(req.grid, 2);
       return { solutions, analysis: solutions === 1 ? analyze(req.grid) : null };
     }
+    case "drill":
+      return buildDrill(req.technique, req.seed);
   }
 }
 
