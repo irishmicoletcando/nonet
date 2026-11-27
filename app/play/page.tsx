@@ -1,9 +1,12 @@
-// M1 placeholder: headline only. The Play screen arrives in M3.
-export default async function PlayPage({ searchParams }: PageProps<"/play">) {
-  const { daily } = await searchParams;
+import { Suspense } from "react";
+import { BoardSkeleton } from "@/components/board/BoardSkeleton";
+import { PlayScreen } from "@/components/play/PlayScreen";
+
+// `?daily=1` is read on the client with useSearchParams, so this page stays static.
+export default function PlayPage() {
   return (
-    <div className="page-head">
-      <h1>{daily === "1" ? "Daily puzzle" : "Quick game"}</h1>
-    </div>
+    <Suspense fallback={<BoardSkeleton />}>
+      <PlayScreen />
+    </Suspense>
   );
 }
