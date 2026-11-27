@@ -55,7 +55,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className={styles.shell}>
-      <header className={styles.topbar}>
+      <header className={styles.topbar} inert={open || undefined}>
         <Logo />
         <button
           ref={menuButton}

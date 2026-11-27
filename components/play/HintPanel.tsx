@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { Glyph } from "@/components/ui/Icon";
 import type { Hint } from "@/lib/game";
@@ -11,6 +14,14 @@ interface HintPanelProps {
 }
 
 export function HintPanel({ hint, stage, onShow, onClose }: HintPanelProps) {
+  // "Show me where" disappears when stage 2 opens; move focus to what replaced it.
+  const explanation = useRef<HTMLParagraphElement>(null);
+  const shown = useRef(stage);
+  useEffect(() => {
+    if (shown.current === 1 && stage === 2) explanation.current?.focus();
+    shown.current = stage;
+  }, [stage]);
+
   return (
     <section className={styles.hint} aria-label="Hint" aria-live="polite">
       <button type="button" className={styles.hintClose} aria-label="Close hint" onClick={onClose}>
@@ -34,7 +45,9 @@ export function HintPanel({ hint, stage, onShow, onClose }: HintPanelProps) {
               </Button>
             </>
           ) : (
-            <p className={styles.hintText}>{hint.step.explanation}</p>
+            <p ref={explanation} tabIndex={-1} className={styles.hintText}>
+              {hint.step.explanation}
+            </p>
           )}
         </>
       )}

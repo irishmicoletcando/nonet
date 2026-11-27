@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ButtonHTMLAttributes, ComponentProps } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, Ref } from "react";
 
 export type ButtonVariant = "primary" | "secondary";
 
@@ -8,6 +8,7 @@ function classes(variant: ButtonVariant, small: boolean | undefined, extra?: str
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   variant?: ButtonVariant;
   small?: boolean;
 }

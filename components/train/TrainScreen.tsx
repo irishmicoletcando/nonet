@@ -44,6 +44,7 @@ function Trainer({ initial }: { initial: Technique }) {
   const [picked, setPicked] = useState<number[]>([]);
   const [result, setResult] = useState<Result | null>(null);
   const checked = useRef(false);
+  const task = useRef<HTMLHeadingElement>(null);
 
   const loadDrill = useCallback(
     async (t: Technique) => {
@@ -110,6 +111,8 @@ function Trainer({ initial }: { initial: Technique }) {
   };
 
   const next = () => {
+    // The result panel (and the focused button) goes away; land on the new task.
+    task.current?.focus();
     setN((x) => (x >= DRILLS_PER_SESSION ? 1 : x + 1));
     void loadDrill(technique);
   };
@@ -150,7 +153,9 @@ function Trainer({ initial }: { initial: Technique }) {
             Drill {n} of {DRILLS_PER_SESSION}
           </p>
           <div className={styles.task}>
-            <h2>Find the {technique}</h2>
+            <h2 ref={task} tabIndex={-1}>
+              Find the {technique}
+            </h2>
             <p>{TECHNIQUE_HELP[technique]}</p>
             <p className="muted">
               {single ? "Tap the cell, then check." : "Tap the cells that form the pattern, then check."}
@@ -182,7 +187,13 @@ function Trainer({ initial }: { initial: Technique }) {
                   ? `Could not find a ${technique} position. Try again.`
                   : "Something went wrong making this drill. Try again."}
               </p>
-              <Button variant="primary" onClick={() => void loadDrill(technique)}>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  task.current?.focus();
+                  void loadDrill(technique);
+                }}
+              >
                 Try again
               </Button>
             </div>

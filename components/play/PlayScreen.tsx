@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { Board } from "@/components/board/Board";
 import { BoardSkeleton } from "@/components/board/BoardSkeleton";
 import { Button } from "@/components/ui/Button";
@@ -63,6 +63,8 @@ function PlayGame({ daily }: { daily: boolean }) {
   const [techniques, setTechniques] = useState<Analysis["techniques"] | null>(null);
 
   const game = state?.game ?? null;
+  const hintButton = useRef<HTMLButtonElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
 
   const start = useCallback(
     async (difficulty: Difficulty) => {
@@ -196,7 +198,11 @@ function PlayGame({ daily }: { daily: boolean }) {
     setHint({ hint: computeHint(game), stage: 1 });
     dispatch({ type: "hint" });
   };
-  const newQuick = () => void start(requested);
+  const newQuick = () => {
+    // The panel holding the clicked button goes away; keep focus at the top of the game.
+    heading.current?.focus();
+    void start(requested);
+  };
   const pickDifficulty = (d: Difficulty) => {
     setRequested(d);
     void start(d);
@@ -209,7 +215,9 @@ function PlayGame({ daily }: { daily: boolean }) {
   return (
     <div className={styles.screen}>
       <div className={styles.head}>
-        <h1>{title}</h1>
+        <h1 ref={heading} tabIndex={-1}>
+          {title}
+        </h1>
         {!daily ? (
           <div className={styles.picker} role="group" aria-label="Difficulty">
             {DIFFICULTIES.map((d) => (
@@ -289,8 +297,10 @@ function PlayGame({ daily }: { daily: boolean }) {
                 <LostPanel
                   game={game}
                   onRetry={() => {
-                    if (daily) act({ type: "restart" });
-                    else newQuick();
+                    if (daily) {
+                      act({ type: "restart" });
+                      heading.current?.focus();
+                    } else newQuick();
                   }}
                 />
               ) : null}
@@ -304,6 +314,7 @@ function PlayGame({ daily }: { daily: boolean }) {
                     onErase={erase}
                     onToggleNotes={toggleNotes}
                     onHint={openHint}
+                    hintRef={hintButton}
                   />
                   <NumberPad remaining={remaining} notesMode={notesMode} disabled={false} onDigit={input} />
                   {selected === null ? (
@@ -317,7 +328,10 @@ function PlayGame({ daily }: { daily: boolean }) {
                         setHint({ ...hint, stage: 2 });
                         if (hint.hint.kind === "step") dispatch({ type: "hintSeen", step: hint.hint.step });
                       }}
-                      onClose={() => setHint(null)}
+                      onClose={() => {
+                        setHint(null);
+                        hintButton.current?.focus();
+                      }}
                     />
                   ) : null}
                 </>

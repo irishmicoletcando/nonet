@@ -56,6 +56,9 @@ function Review({ initial }: { initial: string }) {
   const [selected, setSelected] = useState<number | null>(null);
   // The in-flight check. Aborting terminates its dedicated worker.
   const inflight = useRef<AbortController | null>(null);
+  const backButton = useRef<HTMLButtonElement>(null);
+  const nextButton = useRef<HTMLButtonElement>(null);
+  const navFrom = useRef<"back" | "next" | null>(null);
 
   const run = useCallback(async (input: string) => {
     inflight.current?.abort();
@@ -105,6 +108,15 @@ function Review({ initial }: { initial: string }) {
       inflight.current = null;
     };
   }, [initial, run]);
+
+  // Reaching either end disables the button that was just pressed; hand focus to the other one.
+  const lastIndex = Math.max(0, (result?.analysis.steps.length ?? 0) - 1);
+  useEffect(() => {
+    const from = navFrom.current;
+    navFrom.current = null;
+    if (from === "next" && k >= lastIndex) backButton.current?.focus();
+    if (from === "back" && k === 0) nextButton.current?.focus();
+  }, [k, lastIndex]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -181,13 +193,30 @@ function Review({ initial }: { initial: string }) {
             {steps.length ? (
               <>
                 <div className={styles.stepNav}>
-                  <Button small disabled={k === 0} onClick={() => setK((x) => Math.max(0, x - 1))}>
+                  <Button
+                    ref={backButton}
+                    small
+                    disabled={k === 0}
+                    onClick={() => {
+                      navFrom.current = "back";
+                      setK((x) => Math.max(0, x - 1));
+                    }}
+                  >
                     Back
                   </Button>
                   <span className={styles.stepCount}>
                     Step {k + 1} of {steps.length}
                   </span>
-                  <Button small variant="primary" disabled={k >= last} onClick={() => setK((x) => Math.min(last, x + 1))}>
+                  <Button
+                    ref={nextButton}
+                    small
+                    variant="primary"
+                    disabled={k >= last}
+                    onClick={() => {
+                      navFrom.current = "next";
+                      setK((x) => Math.min(last, x + 1));
+                    }}
+                  >
                     Next step
                   </Button>
                 </div>
