@@ -1,8 +1,16 @@
-// M1 placeholder: headline only. The Review screen arrives in M4.
+import { Suspense } from "react";
+import { ReviewScreen } from "@/components/review/ReviewScreen";
+
 export default function ReviewPage() {
   return (
-    <div className="page-head">
-      <h1>Puzzle review</h1>
-    </div>
+    <Suspense
+      fallback={
+        <div className="page-head">
+          <h1>Puzzle review</h1>
+        </div>
+      }
+    >
+      <ReviewScreen />
+    </Suspense>
   );
 }

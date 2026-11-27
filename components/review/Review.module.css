@@ -1,0 +1,262 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ---------- paste form ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 720px;
+}
+
+.label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.input {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-box);
+  background: var(--board);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+  resize: vertical;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+
+.error {
+  color: var(--error);
+  font-weight: 700;
+}
+
+.making {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* ---------- layout ---------- */
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px;
+}
+
+.boardCol {
+  display: flex;
+  flex: 0 1 506px;
+  flex-direction: column;
+  gap: 16px;
+  min-width: min(100%, 300px);
+}
+
+.side {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  max-width: 560px;
+}
+
+.stepNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stepCount {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-left: 4px solid var(--red);
+  background: var(--surface);
+  line-height: 1.45;
+}
+
+.explain strong {
+  font-weight: 900;
+}
+
+/* ---------- summary ---------- */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  border-top: 2px solid var(--ink);
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.summary > div {
+  padding: 12px 14px;
+  border-left: var(--rule-w) solid var(--rule);
+}
+
+.summary > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.summary dt {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.summary dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.summary dd.summaryText {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.stuck {
+  margin-top: 8px;
+}
+
+.sectionTitle {
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+/* ---------- chart ---------- */
+.chart {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.chart th,
+.chart td {
+  padding: 5px 0;
+  border-bottom: var(--rule-w) solid var(--rule);
+  vertical-align: middle;
+}
+
+.chart th {
+  width: 40%;
+  padding-right: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.barCell {
+  width: 50%;
+}
+
+.bar {
+  display: block;
+  height: 14px;
+  background: var(--ink);
+}
+
+.bar[data-hardest="true"] {
+  background: var(--red);
+}
+
+.count {
+  width: 10%;
+  padding-left: 10px;
+  font-weight: 800;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- steps list ---------- */
+.steps {
+  position: relative;
+  list-style: none;
+  max-height: 420px;
+  overflow-y: auto;
+  border-top: 2px solid var(--ink);
+  border-bottom: var(--rule-w) solid var(--rule);
+}
+
+.steps > li + li {
+  border-top: var(--rule-w) solid var(--rule);
+}
+
+.stepRow {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 8px;
+  border: 0;
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+}
+
+.stepRow:hover {
+  background: var(--surface);
+}
+
+.stepRow[aria-current="step"] {
+  background: var(--yellow);
+}
+
+.stepRow:focus-visible {
+  outline-offset: -3px;
+}
+
+.stepNum {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.stepRow[aria-current="step"] .stepNum {
+  color: var(--ink);
+}
+
+.stepDesc {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.stepTech {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 479px) {
+  .stepRow {
+    grid-template-columns: 2.2em minmax(0, 1fr);
+  }
+
+  .stepTech {
+    grid-column: 2;
+  }
+}
