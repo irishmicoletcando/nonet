@@ -45,11 +45,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     const onMq = () => {
       if (mq.matches) setOpen(false);
     };
+    // Browser Back/Forward can stay on the same pathname (e.g. /play?daily=1 -> /play),
+    // so the pathname check above is not enough.
+    const onPop = () => setOpen(false);
     document.addEventListener("keydown", onKey);
     mq.addEventListener("change", onMq);
+    window.addEventListener("popstate", onPop);
     return () => {
       document.removeEventListener("keydown", onKey);
       mq.removeEventListener("change", onMq);
+      window.removeEventListener("popstate", onPop);
     };
   }, [open]);
 

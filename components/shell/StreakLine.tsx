@@ -2,12 +2,18 @@
 
 import { useNonetStore } from "@/lib/storage";
 import { streak, streakText, weekLabel, weekSquares } from "@/lib/progress";
+import { dateFromKey, useTodayKey } from "@/lib/useToday";
 import styles from "./Shell.module.css";
+
+/** Stand-in date for the server render, where the store is empty anyway. */
+const SERVER_DAY = new Date(2000, 0, 3);
 
 export function StreakLine() {
   const store = useNonetStore();
-  const today = new Date();
-  const n = streak(store, today);
+  // Re-renders when the date changes, so the streak and week roll over at midnight.
+  const key = useTodayKey();
+  const today = key ? dateFromKey(key) : SERVER_DAY;
+  const n = key ? streak(store, today) : 0;
   const squares = weekSquares(store, today);
 
   return (
@@ -18,8 +24,8 @@ export function StreakLine() {
           <span
             key={s.day}
             className={styles.day}
-            data-played={s.played}
-            data-today={s.isToday}
+            data-played={key ? s.played : false}
+            data-today={key ? s.isToday : false}
             title={s.day}
           />
         ))}
