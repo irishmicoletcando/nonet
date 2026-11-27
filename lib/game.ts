@@ -65,6 +65,12 @@ function push(state: GameState): Snapshot[] {
 const isComplete = (g: SavedGame) => g.values.every((v, i) => v === g.solution[i]);
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  const next = reduce(state, action);
+  if (next === state || action.type === "tick") return next;
+  return { ...next, game: { ...next.game, rev: Math.min(LIMITS.rev, (state.game.rev ?? 0) + 1) } };
+}
+
+function reduce(state: GameState, action: GameAction): GameState {
   const g = state.game;
   switch (action.type) {
     case "input": {
@@ -153,10 +159,19 @@ export function sameGame(a: SavedGame, b: SavedGame): boolean {
   return a.seed === b.seed && a.dateKey === b.dateKey && a.puzzle.join("") === b.puzzle.join("");
 }
 
+/** Seconds two tabs' clocks may drift apart before the one behind catches up. */
+const CLOCK_SLACK = 2;
+
+/** Same attempt at the same game with no user change between the two copies (only the clock differs). */
+export function sameProgress(a: SavedGame, b: SavedGame): boolean {
+  return sameGame(a, b) && (a.attempt ?? 0) === (b.attempt ?? 0) && (a.rev ?? 0) === (b.rev ?? 0);
+}
+
 /**
  * True when stored copy `a` of a game is further along than copy `b`, so `b` must not
  * overwrite it and should adopt it. A win is final; a later attempt ("Try again") beats an
- * earlier one; within an attempt a finished game beats a playing one.
+ * earlier one; within an attempt a finished game beats a playing one, then the copy with more
+ * user changes wins, then a clock that is clearly ahead.
  */
 export function supersedes(a: SavedGame, b: SavedGame): boolean {
   if (!sameGame(a, b)) return false;
@@ -165,7 +180,11 @@ export function supersedes(a: SavedGame, b: SavedGame): boolean {
   const aa = a.attempt ?? 0;
   const ba = b.attempt ?? 0;
   if (aa !== ba) return aa > ba;
-  return a.status === "lost" && b.status === "playing";
+  if (a.status !== b.status) return a.status === "lost";
+  const ar = a.rev ?? 0;
+  const br = b.rev ?? 0;
+  if (ar !== br) return ar > br;
+  return a.seconds > b.seconds + CLOCK_SLACK;
 }
 
 /** Non-given cells whose value differs from the solution. */

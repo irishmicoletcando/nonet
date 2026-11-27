@@ -23,6 +23,8 @@ export interface SavedGame {
   dateKey: string;
   /** Increments on "Try again", so a restarted game outranks the stale lost copy. Missing = 0. */
   attempt?: number;
+  /** Increments on every change the user makes (not on timer ticks), so a stale tab can tell. Missing = 0. */
+  rev?: number;
   /**
    * Candidates ruled out by hints the user has fully opened (engine Cands format).
    * Hints start from these so an elimination-only hint does not repeat. Missing = none.
@@ -65,6 +67,7 @@ export const LIMITS = {
   seed: 2 ** 32 - 1,
   hintsUsed: 100_000,
   attempt: 100_000,
+  rev: 10_000_000,
   drillCount: 10_000_000,
 } as const;
 
@@ -97,6 +100,7 @@ export function isSavedGame(x: unknown): x is SavedGame {
       (x.status === "playing" || x.status === "won" || x.status === "lost") &&
       isDate(x.dateKey) &&
       (x.attempt === undefined || isInt(x.attempt, 0, LIMITS.attempt)) &&
+      (x.rev === undefined || isInt(x.rev, 0, LIMITS.rev)) &&
       (x.hintElims === undefined || isMasks(x.hintElims))
     )
   )

@@ -17,6 +17,7 @@ import {
   newGame,
   remainingCounts,
   sameGame,
+  sameProgress,
   supersedes,
   wrongCells,
   type GameAction,
@@ -35,7 +36,10 @@ import styles from "./Play.module.css";
 type Action = GameAction | { type: "load"; game: SavedGame };
 
 function reducer(state: GameState | null, action: Action): GameState | null {
-  if (action.type === "load") return initState(action.game);
+  if (action.type === "load") {
+    // Only the clock moved (another tab ticked ahead): the undo history still applies.
+    return state && sameProgress(state.game, action.game) ? { ...state, game: action.game } : initState(action.game);
+  }
   return state ? gameReducer(state, action) : state;
 }
 
@@ -128,8 +132,10 @@ function PlayGame({ daily }: { daily: boolean }) {
         adopt.game = prev;
         return s;
       }
+      // A daily tab left open from an earlier day must not replace a newer day's game.
+      const outdated = daily && prev !== undefined && prev.dateKey > game.dateKey;
       const alreadyWon = prev !== undefined && prev.status === "won" && sameGame(prev, game);
-      const next = { ...s, games: { ...s.games, [mode]: game } };
+      const next = outdated ? { ...s } : { ...s, games: { ...s.games, [mode]: game } };
       if (game.status === "won" && !alreadyWon) {
         const today = dateKey(new Date());
         next.solves = [
@@ -141,14 +147,15 @@ function PlayGame({ daily }: { daily: boolean }) {
       return next;
     });
     if (adopt.game) dispatch({ type: "load", game: adopt.game });
-  }, [game, mode]);
+  }, [game, mode, daily]);
 
   // Follow other tabs: when the stored copy of this game moves ahead, show it.
   const stored = useNonetStore().games[mode];
   useEffect(() => {
     if (loading || !game || !stored) return;
     if (supersedes(stored, game)) {
-      setHint(null);
+      // A clock catch-up leaves the board alone, so an open hint stays.
+      if (!sameProgress(stored, game)) setHint(null);
       dispatch({ type: "load", game: stored });
     }
   }, [stored, game, loading]);
@@ -162,6 +169,15 @@ function PlayGame({ daily }: { daily: boolean }) {
     }, 1000);
     return () => window.clearInterval(id);
   }, [playing]);
+
+  // Winning or losing from the number pad removes the focused key; keep focus on the game.
+  const status = loading ? null : (game?.status ?? null);
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    const ended = prevStatus.current === "playing" && (status === "won" || status === "lost");
+    prevStatus.current = status;
+    if (ended && document.activeElement === document.body) heading.current?.focus();
+  }, [status]);
 
   // Techniques for the win panel.
   const won = !loading && game?.status === "won";
