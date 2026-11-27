@@ -25,7 +25,9 @@
 }
 
 .plan[data-best] {
-  margin: 8px 0;
+  position: relative;
+  /* 22px + the 2px border keeps this column level with the others */
+  padding-top: 22px;
   padding-left: 18px;
   padding-right: 18px;
   border: 2px solid var(--red);
@@ -44,9 +46,12 @@
   gap: 6px;
 }
 
+/* sits on the red border so it does not push the plan's content down */
 .best {
+  position: absolute;
+  top: -12px;
+  left: 16px;
   display: flex;
-  margin-bottom: 4px;
 }
 
 .planName {
@@ -130,7 +135,7 @@
   }
 
   .plan[data-best] {
-    margin: 8px 0;
+    margin: 14px 0 8px;
     padding: 20px 16px 24px;
     border: 2px solid var(--red);
   }
