@@ -30,6 +30,8 @@ export type GameAction =
   | { type: "undo" }
   | { type: "tick" }
   | { type: "hint" }
+  /** The user opened stage 2 of this hint: keep its eliminations for later hints. */
+  | { type: "hintSeen"; step: Step }
   | { type: "restart" };
 
 const HISTORY_MAX = 200;
@@ -112,6 +114,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "hint":
       if (g.status !== "playing") return state;
       return { ...state, game: { ...g, hintsUsed: Math.min(LIMITS.hintsUsed, g.hintsUsed + 1) } };
+    case "hintSeen": {
+      const { step } = action;
+      if (g.status !== "playing" || step.placements.length || !step.eliminations.length) return state;
+      const elims = g.hintElims ? g.hintElims.slice() : new Array<number>(81).fill(0);
+      let changed = false;
+      for (const e of step.eliminations) {
+        // Never rule out the answer (cannot happen for a sound step, but the board must win).
+        if (e.digit === g.solution[e.cell] || g.values[e.cell] !== 0) continue;
+        const bit = 1 << e.digit;
+        if (!(elims[e.cell] & bit)) {
+          elims[e.cell] |= bit;
+          changed = true;
+        }
+      }
+      return changed ? { ...state, game: { ...g, hintElims: elims } } : state;
+    }
     case "restart":
       return {
         game: {
@@ -200,11 +218,27 @@ export function hintRegion(step: Step): string {
   return pick ? unitName(pick.idx) : unitName(18 + boxOf(cells[0]));
 }
 
+/**
+ * Candidates for hints: what the filled digits allow, minus eliminations from hints the
+ * user has already fully opened. Those are facts about the solution (each one is checked
+ * against it), so they stay true after undo or erase and never rule out an answer.
+ * They are dropped on a new game and on "Try again".
+ */
+export function hintCands(g: SavedGame): number[] {
+  const cands = initCands(g.values);
+  if (!g.hintElims) return cands;
+  for (let i = 0; i < 81; i++) {
+    if (!cands[i]) continue;
+    const drop = g.hintElims[i] & ~(1 << g.solution[i]);
+    cands[i] &= ~drop;
+  }
+  return cands;
+}
+
 /** Next logical step from the current position, with wrong digits ignored. */
 export function computeHint(g: SavedGame): Hint {
   if (wrongCells(g).length > 0) return { kind: "wrong" };
-  const grid = g.values.slice();
-  const step = findStep(grid, initCands(grid));
+  const step = findStep(g.values.slice(), hintCands(g));
   if (!step) return { kind: "none" };
   return { kind: "step", step, region: hintRegion(step) };
 }

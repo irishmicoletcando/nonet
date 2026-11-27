@@ -313,7 +313,10 @@ function PlayGame({ daily }: { daily: boolean }) {
                     <HintPanel
                       hint={hint.hint}
                       stage={hint.stage}
-                      onShow={() => setHint({ ...hint, stage: 2 })}
+                      onShow={() => {
+                        setHint({ ...hint, stage: 2 });
+                        if (hint.hint.kind === "step") dispatch({ type: "hintSeen", step: hint.hint.step });
+                      }}
                       onClose={() => setHint(null)}
                     />
                   ) : null}
