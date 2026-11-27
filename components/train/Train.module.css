@@ -16,8 +16,6 @@
 .techRow {
   display: flex;
   gap: 6px;
-  width: max-content;
-  min-width: 100%;
 }
 
 .techButton {
@@ -28,7 +26,6 @@
   justify-content: space-between;
   gap: 6px;
   min-height: 64px;
-  max-width: 160px;
   padding: 8px 10px;
   border: 2px solid var(--rule);
   border-radius: var(--radius-box);
