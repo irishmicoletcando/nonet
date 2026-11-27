@@ -11,7 +11,7 @@ import {
   type Step,
 } from "./engine";
 import { MISTAKES_ALLOWED } from "./constants";
-import type { SavedGame } from "./storage";
+import { LIMITS, type SavedGame } from "./storage";
 
 interface Snapshot {
   values: number[];
@@ -108,10 +108,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "tick":
       if (g.status !== "playing") return state;
-      return { ...state, game: { ...g, seconds: g.seconds + 1 } };
+      return { ...state, game: { ...g, seconds: Math.min(LIMITS.seconds, g.seconds + 1) } };
     case "hint":
       if (g.status !== "playing") return state;
-      return { ...state, game: { ...g, hintsUsed: g.hintsUsed + 1 } };
+      return { ...state, game: { ...g, hintsUsed: Math.min(LIMITS.hintsUsed, g.hintsUsed + 1) } };
     case "restart":
       return {
         game: {

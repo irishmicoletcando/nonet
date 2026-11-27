@@ -3,6 +3,7 @@
 // the app keeps working from an in-memory store for the rest of the session.
 
 import { useSyncExternalStore } from "react";
+import { MISTAKES_ALLOWED } from "./constants";
 import { TECHNIQUE_ORDER, type Difficulty, type Technique } from "./engine";
 
 export const STORAGE_KEY = "nonet:v1";
@@ -20,6 +21,13 @@ export interface SavedGame {
   status: "playing" | "won" | "lost";
   hintsUsed: number;
   dateKey: string;
+  /** Increments on "Try again", so a restarted game outranks the stale lost copy. Missing = 0. */
+  attempt?: number;
+  /**
+   * Candidates ruled out by hints the user has fully opened (engine Cands format).
+   * Hints start from these so an elimination-only hint does not repeat. Missing = none.
+   */
+  hintElims?: number[];
 }
 
 export interface Solve {
@@ -51,48 +59,105 @@ const SERVER_SNAPSHOT: NonetStore = defaultStore();
 const DIFFS: Difficulty[] = ["Easy", "Medium", "Hard", "Expert", "Fiendish"];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
-const isNum = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
-const isDate = (x: unknown): x is string => typeof x === "string" && DATE_RE.test(x);
-const isGrid = (x: unknown): x is number[] => Array.isArray(x) && x.length === 81 && x.every(isNum);
+/** Upper bounds for "sane" numbers. */
+export const LIMITS = {
+  seconds: 10 * 24 * 3600, // ten days on one puzzle
+  seed: 2 ** 32 - 1,
+  hintsUsed: 100_000,
+  attempt: 100_000,
+  drillCount: 10_000_000,
+} as const;
 
-function isSavedGame(x: unknown): x is SavedGame {
+/** Candidate masks use bits 1..9 only. */
+const MASK_ALL = 0x3fe;
+
+const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
+const isInt = (x: unknown, min: number, max: number): x is number =>
+  typeof x === "number" && Number.isInteger(x) && x >= min && x <= max;
+const isDate = (x: unknown): x is string => typeof x === "string" && DATE_RE.test(x);
+const isCells = (x: unknown, min: number, max: number): x is number[] =>
+  Array.isArray(x) && x.length === 81 && x.every((v) => isInt(v, min, max));
+const isMasks = (x: unknown): x is number[] =>
+  Array.isArray(x) && x.length === 81 && x.every((v) => isInt(v, 0, MASK_ALL) && (v & ~MASK_ALL) === 0);
+
+export function isSavedGame(x: unknown): x is SavedGame {
   if (!isObj(x)) return false;
-  return (
-    isNum(x.seed) &&
-    DIFFS.includes(x.difficulty as Difficulty) &&
-    typeof x.daily === "boolean" &&
-    isGrid(x.puzzle) && isGrid(x.solution) && isGrid(x.values) && isGrid(x.notes) &&
-    isNum(x.mistakes) && isNum(x.seconds) && isNum(x.hintsUsed) &&
-    (x.status === "playing" || x.status === "won" || x.status === "lost") &&
-    isDate(x.dateKey)
-  );
+  if (
+    !(
+      isInt(x.seed, 0, LIMITS.seed) &&
+      DIFFS.includes(x.difficulty as Difficulty) &&
+      typeof x.daily === "boolean" &&
+      isCells(x.puzzle, 0, 9) &&
+      isCells(x.solution, 1, 9) &&
+      isCells(x.values, 0, 9) &&
+      isMasks(x.notes) &&
+      isInt(x.mistakes, 0, MISTAKES_ALLOWED) &&
+      isInt(x.seconds, 0, LIMITS.seconds) &&
+      isInt(x.hintsUsed, 0, LIMITS.hintsUsed) &&
+      (x.status === "playing" || x.status === "won" || x.status === "lost") &&
+      isDate(x.dateKey) &&
+      (x.attempt === undefined || isInt(x.attempt, 0, LIMITS.attempt)) &&
+      (x.hintElims === undefined || isMasks(x.hintElims))
+    )
+  )
+    return false;
+  const g = x as unknown as SavedGame;
+  for (let i = 0; i < 81; i++) {
+    // Givens agree with the solution and stay in place.
+    if (g.puzzle[i] && (g.puzzle[i] !== g.solution[i] || g.values[i] !== g.puzzle[i])) return false;
+    // Hint eliminations are facts about the solution: they may never rule out the answer.
+    if (g.hintElims && g.hintElims[i] & (1 << g.solution[i])) return false;
+  }
+  // Status must agree with the board.
+  const solved = g.values.every((v, i) => v === g.solution[i]);
+  if (g.status === "won" && !solved) return false;
+  if (g.status === "lost" && g.mistakes < MISTAKES_ALLOWED) return false;
+  if (g.status === "playing" && (solved || g.mistakes >= MISTAKES_ALLOWED)) return false;
+  return true;
 }
 
 function isSolve(x: unknown): x is Solve {
   return (
-    isObj(x) && isDate(x.date) && DIFFS.includes(x.difficulty as Difficulty) &&
-    isNum(x.seconds) && isNum(x.mistakes) && typeof x.daily === "boolean"
+    isObj(x) &&
+    isDate(x.date) &&
+    DIFFS.includes(x.difficulty as Difficulty) &&
+    isInt(x.seconds, 0, LIMITS.seconds) &&
+    isInt(x.mistakes, 0, MISTAKES_ALLOWED) &&
+    typeof x.daily === "boolean"
   );
 }
 
-/** Returns a valid store, or null if the value does not have the v1 shape. */
+function isDrillRecord(v: unknown): boolean {
+  return (
+    isObj(v) &&
+    isInt(v.attempted, 0, LIMITS.drillCount) &&
+    isInt(v.correct, 0, LIMITS.drillCount) &&
+    (v.correct as number) <= (v.attempted as number)
+  );
+}
+
+/**
+ * Returns a valid store, or null if the value does not have the v1 shape.
+ * A single bad saved game is dropped on its own, so it cannot wipe the streak and stats.
+ */
 export function parseStore(raw: unknown): NonetStore | null {
   if (!isObj(raw) || raw.version !== 1) return null;
   const { playedDays, solves, games, drills, drillsByDay, reviewedDaily } = raw;
   if (!Array.isArray(playedDays) || !playedDays.every(isDate)) return null;
   if (!Array.isArray(solves) || !solves.every(isSolve)) return null;
   if (!isObj(games)) return null;
-  if (games.daily !== undefined && !isSavedGame(games.daily)) return null;
-  if (games.quick !== undefined && !isSavedGame(games.quick)) return null;
   if (!isObj(drills)) return null;
   for (const [k, v] of Object.entries(drills)) {
-    if (!TECHNIQUE_ORDER.includes(k as Technique)) return null;
-    if (!isObj(v) || !isNum(v.correct) || !isNum(v.attempted)) return null;
+    if (!TECHNIQUE_ORDER.includes(k as Technique) || !isDrillRecord(v)) return null;
   }
-  if (!isObj(drillsByDay) || !Object.entries(drillsByDay).every(([k, v]) => isDate(k) && isNum(v))) return null;
+  if (!isObj(drillsByDay) || !Object.entries(drillsByDay).every(([k, v]) => isDate(k) && isInt(v, 0, LIMITS.drillCount)))
+    return null;
   if (!Array.isArray(reviewedDaily) || !reviewedDaily.every(isDate)) return null;
-  return raw as unknown as NonetStore;
+  const store = raw as unknown as NonetStore;
+  const cleanGames: NonetStore["games"] = {};
+  if (isSavedGame(games.daily) && games.daily.daily) cleanGames.daily = games.daily;
+  if (isSavedGame(games.quick) && !games.quick.daily) cleanGames.quick = games.quick;
+  return { ...store, games: cleanGames };
 }
 
 /** Dedupe and cap the lists so storage never grows without bound. */
