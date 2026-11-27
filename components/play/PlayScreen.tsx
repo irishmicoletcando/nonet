@@ -16,13 +16,15 @@ import {
   initState,
   newGame,
   remainingCounts,
+  sameGame,
+  supersedes,
   wrongCells,
   type GameAction,
   type GameState,
   type Hint,
 } from "@/lib/game";
 import { dateKey } from "@/lib/progress";
-import { load, update, type SavedGame } from "@/lib/storage";
+import { load, update, useNonetStore, type SavedGame } from "@/lib/storage";
 import { STALE, useEngine } from "@/lib/worker/useEngine";
 import { HintPanel } from "./HintPanel";
 import { NumberPad } from "./NumberPad";
@@ -38,9 +40,6 @@ function reducer(state: GameState | null, action: Action): GameState | null {
 }
 
 const DEFAULT_DIFFICULTY: Difficulty = "Medium";
-
-const sameGame = (a: SavedGame, b: SavedGame) =>
-  a.seed === b.seed && a.dateKey === b.dateKey && a.puzzle.join("") === b.puzzle.join("");
 
 /** Reads `?daily` and remounts the game when the mode changes, so nothing carries over. */
 export function PlayScreen() {
@@ -114,12 +113,19 @@ function PlayGame({ daily }: { daily: boolean }) {
     // Mount only: the component is keyed by mode, so a mode change remounts it.
   }, []);
 
-  // Persist after every change. Recording the solve is idempotent: it only happens
-  // when the stored copy of this same game was not already "won".
+  // Persist after every change. `update` starts from the freshly stored value, so this also
+  // arbitrates between tabs: if the stored copy of this game is further along (won in another
+  // tab, or restarted there), keep it and adopt it instead of writing ours over it.
+  // Recording the solve is idempotent: only when the stored copy of this game was not already won.
   useEffect(() => {
     if (!game) return;
+    const adopt: { game: SavedGame | null } = { game: null };
     update((s) => {
       const prev = s.games[mode];
+      if (prev && supersedes(prev, game)) {
+        adopt.game = prev;
+        return s;
+      }
       const alreadyWon = prev !== undefined && prev.status === "won" && sameGame(prev, game);
       const next = { ...s, games: { ...s.games, [mode]: game } };
       if (game.status === "won" && !alreadyWon) {
@@ -132,7 +138,18 @@ function PlayGame({ daily }: { daily: boolean }) {
       }
       return next;
     });
+    if (adopt.game) dispatch({ type: "load", game: adopt.game });
   }, [game, mode]);
+
+  // Follow other tabs: when the stored copy of this game moves ahead, show it.
+  const stored = useNonetStore().games[mode];
+  useEffect(() => {
+    if (loading || !game || !stored) return;
+    if (supersedes(stored, game)) {
+      setHint(null);
+      dispatch({ type: "load", game: stored });
+    }
+  }, [stored, game, loading]);
 
   // Timer: ticks while playing and the tab is visible.
   const playing = !loading && game?.status === "playing";

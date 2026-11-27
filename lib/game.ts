@@ -122,10 +122,32 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           seconds: 0,
           status: "playing",
           hintsUsed: 0,
+          attempt: Math.min(LIMITS.attempt, (g.attempt ?? 0) + 1),
+          hintElims: undefined,
         },
         history: [],
       };
   }
+}
+
+/** Same puzzle instance: same seed, day and grid. */
+export function sameGame(a: SavedGame, b: SavedGame): boolean {
+  return a.seed === b.seed && a.dateKey === b.dateKey && a.puzzle.join("") === b.puzzle.join("");
+}
+
+/**
+ * True when stored copy `a` of a game is further along than copy `b`, so `b` must not
+ * overwrite it and should adopt it. A win is final; a later attempt ("Try again") beats an
+ * earlier one; within an attempt a finished game beats a playing one.
+ */
+export function supersedes(a: SavedGame, b: SavedGame): boolean {
+  if (!sameGame(a, b)) return false;
+  if (a.status === "won") return b.status !== "won";
+  if (b.status === "won") return false;
+  const aa = a.attempt ?? 0;
+  const ba = b.attempt ?? 0;
+  if (aa !== ba) return aa > ba;
+  return a.status === "lost" && b.status === "playing";
 }
 
 /** Non-given cells whose value differs from the solution. */

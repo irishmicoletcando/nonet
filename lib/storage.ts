@@ -180,8 +180,9 @@ let cache: NonetStore | null = null;
 let memoryOnly = false;
 const listeners = new Set<() => void>();
 
-function readStorage(): NonetStore {
-  if (memoryOnly) return defaultStore();
+/** The stored value, defaults if missing or invalid, or null if storage cannot be read at all. */
+function tryReadStorage(): NonetStore | null {
+  if (memoryOnly) return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw === null) return defaultStore();
@@ -195,8 +196,12 @@ function readStorage(): NonetStore {
   } catch {
     // SecurityError (blocked storage) or similar: stay in memory from now on.
     memoryOnly = true;
-    return defaultStore();
+    return null;
   }
+}
+
+function readStorage(): NonetStore {
+  return tryReadStorage() ?? cache ?? defaultStore();
 }
 
 /** Current store. Client-only; on the server it returns defaults. */
@@ -209,6 +214,10 @@ export function load(): NonetStore {
 /** Apply `fn` to the store, persist it if possible, and notify subscribers. Never throws. */
 export function update(fn: (s: NonetStore) => NonetStore): void {
   if (typeof window === "undefined") return;
+  // Start from what is stored now, not this tab's cached copy, so another tab's
+  // changes (a win, a solve, drill counts) are never written over with stale data.
+  const fresh = tryReadStorage();
+  if (fresh) cache = fresh;
   let next: NonetStore;
   try {
     next = trim(fn(load()));
