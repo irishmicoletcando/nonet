@@ -1,0 +1,150 @@
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+/* ---------- hero ---------- */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px 40px;
+}
+
+.heroBoard {
+  flex: 0 1 406px;
+  min-width: min(100%, 280px);
+}
+
+.heroText {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  max-width: 520px;
+}
+
+.heroTitle {
+  font-size: clamp(26px, 3.4vw, 34px);
+}
+
+.heroCopy {
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+.making {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.checklist {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: var(--rule-w) solid var(--rule);
+}
+
+.checklist li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ---------- sections ---------- */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------- play list ---------- */
+.playRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 12px 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.playRow:hover {
+  background: var(--surface);
+}
+
+a.playRow:focus-visible {
+  outline-offset: -3px;
+}
+
+.playRow[aria-disabled="true"] {
+  cursor: default;
+}
+
+.playRow[aria-disabled="true"] .playDesc,
+.playRow[aria-disabled="true"] .playTitle {
+  color: var(--muted);
+}
+
+.playText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.playTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.playDesc {
+  font-size: 15px;
+  color: var(--muted);
+}
+
+.playArrow {
+  display: inline-flex;
+  flex: none;
+}
+
+/* ---------- stats ---------- */
+.stats {
+  margin: 0;
+}
+
+.stats dt {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.stats dd {
+  margin: 4px 0 0;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats dd.statText {
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
