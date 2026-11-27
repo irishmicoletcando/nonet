@@ -1,0 +1,39 @@
+# Original ask (verbatim). This is ground truth; specs are derived from it.
+
+UI reference: https://claude.ai/artifact/Tw4H6QNgJ6evwZLaTtXWsv#page-dcb81aee8d83
+(mockups saved locally in specs/design/*.dc.html). Run through /pipeline.
+
+This UI-only brief was sent after an earlier full-app brief and supersedes it
+(the earlier one asked for a dark charcoal/amber theme).
+
+---
+
+Build ONLY the UI for "Nonet", a sudoku web app (play, review, train). Next.js App Router + TypeScript, no Tailwind. lib/engine.ts already exists and is tested; import from it, do not modify it. Read node_modules/next/dist/docs/ for the installed Next version before writing code.
+
+Scope: layout, design tokens, components and screens, wired to the engine's existing functions with simple local state. No accounts, no payments, no backend, no leaderboards, leagues or achievements. The Pricing page is static: buttons link to "/" and do nothing else. Keep progress (streak, stats, in-progress game) in localStorage, and handle storage being unavailable.
+
+Engine API you can use: generatePuzzle(difficulty, seed) -> { puzzle, solution, difficulty, rating }; analyze(grid) -> { steps, solved, rating, techniques, hardest, difficulty } where each step has technique, explanation, placements, eliminations, highlight; findStep, initCands, parseGrid, dailySeed, TECHNIQUE_ORDER. Grids are number[81], 0 = empty. Generating Hard/Expert takes ~100ms, so do it in a Web Worker or defer it so the UI never freezes.
+
+DESIGN DIRECTION: a printed puzzle book, not a SaaS dashboard. Newsprint paper, black ink, pen and pencil. It must NOT look like a generic AI template. So:
+- No gradients, no glossy or 3D icons, no emoji, no drop-shadow cards, no glassmorphism.
+- No serif headline with one italic accent word. No small uppercase eyebrow label above every section. No identical rounded cards in a grid. Headlines are plain and say what the page is ("Daily puzzle", "Puzzle review", "Technique trainer", "Pricing").
+- Boxes are square (4px radius max) with 2px ink borders, or no box at all: use rules (1.5px lines) and whitespace to separate content. Prefer lists and tables over card grids.
+- Tokens (put in globals.css as CSS variables): paper #F4EFE4, surface #FBF8F0, sidebar #EAE3D1, rule #CFC6B0, ink #1B1A17, muted #5C574E, pencil red #C8371F (primary buttons, white text), highlighter yellow #FFE45C (selection, active nav), pen blue #1F5FA8 (user-entered digits), success green #1F7A5A, error #B8321F. Text contrast 4.5:1 minimum.
+- Font: Libre Franklin (400, 600, 700, 800, 900) via next/font/google. Headlines weight 900, tight tracking. Candidate marks in cells use a monospace 3x3 layout.
+- Icons: simple 2px-stroke inline SVG, drawn in ink inside a 30px flat square with a 2px ink border and a pale flat tint (yellow #FFE45C, mint #BFE3D0, pink #F6C6BC, lavender #D9D0F0, blue #C8DCF0).
+- Buttons: 6px radius, 50px tall, weight 900. Primary = red with white text. Secondary = 2px ink outline. 44px minimum touch targets everywhere. Real <button> and <a>, aria-labels on icon-only buttons, visible focus rings.
+
+BOARD COMPONENT (the centerpiece, build it first and well): cream #FFFDF8 board with a 3px ink outer border, 2px lines between boxes, 1px #DDD6CB lines between cells, 2px radius, and a hard offset shadow (6px 6px 0 ink). Givens in ink and bold. User digits in pen blue. Wrong digits in red. Selected cell yellow #FFE45C; same-digit cells soft yellow #FFF0A8; row/column/box peers #F5EDDD. Pattern cells (review/trainer) yellow, cells losing a candidate #FFC9C9. Candidates render as a 3x3 mini grid. Props: values, givens, notes, selected, pattern cells, eliminations, ghost placements, wrong cells, onSelect. Fully keyboard accessible (arrows move, 1-9 enter, Backspace erases, N toggles notes). Scales down cleanly on a 360px phone.
+
+LAYOUT: left sidebar (260px) on desktop, collapsing to a top bar with a menu button on phones. Sidebar: logo (a 3x3 grid glyph in a flat yellow square + wordmark "Nonet"), a streak line ("4-day streak" with seven small squares for the week, filled red for days played), then grouped links with small group labels: PLAY (Daily puzzle, Quick game), REVIEW (Review a puzzle), TRAIN (Technique trainer, Courses [SOON]), TOOLS (Solver, Scan a puzzle [SOON]), ACCOUNT (Pricing). Active link = yellow background with a 2px ink inset border. SOON badges are small muted pills. Footer text: "Free plan available. Runs in your browser."
+
+SCREENS
+1. / Home: heading "Good morning, Irish" with a muted line under it (date + streak). Hero row: the daily puzzle board preview (about 400px) beside a text column: Hard pill, headline "Today's puzzle needs a <technique>." (computed by analyzing the daily puzzle), one short paragraph, Play daily + Review first buttons, then a plain 3-item checklist (solve one puzzle, review the daily, do 3 technique drills) with square checkboxes. Below: "Play", a flat list of rows with 1.5px bottom rules (small flat icon, title, one-line description, optional SOON pill, arrow): Quick game, Technique trainer, Speed run (SOON), Spot the mistake (SOON). Below: "Your numbers", one row of four stats separated by rules: puzzles solved, best Hard time, drill accuracy, weakest technique, all computed from localStorage.
+2. /play (and /play?daily=1): difficulty picker, timer, mistakes counter (3 allowed). Board at about 540px; beside it, a tool row (Undo, Erase, Notes toggle, Hint), a 3x3 number pad showing how many of each digit remain, and a hint panel (two-stage: technique and region first, then the cell) bordered in red. Win state shows time, mistakes, techniques used and a "Review this puzzle" button.
+3. /review: textarea or input to paste an 81-character puzzle, then: board (about 500px) with Back / Next step buttons, a boxed step explanation with a red left border, three summary numbers (difficulty, rating, hardest technique), a horizontal-bar technique chart (bars in ink, hardest technique in red), and a scrollable steps list with the current step highlighted yellow. Button: "Drill <hardest technique>".
+4. /train: a row of technique buttons (Naked Single, Hidden Single, Naked Pair, Pointing Pair, Box/Line Reduction, Hidden Pair, Naked Triple, X-Wing) each showing correct/attempted, the selected one with a red 2px border. Board (about 540px) showing candidates; right column: "Drill 6 of 10", the task ("Find the Naked Pair"), a progress bar, Clear and Check answer buttons, and a result panel (green tint on correct, red tint on wrong) with the engine's explanation and a Next drill button.
+5. /pricing (static): heading "Pricing" and one muted line ("Playing and reviewing stay free. Pay to train smarter with a plan built from your own mistakes."). Four plans as columns separated by rules, not floating cards: Free 0 USD; Monthly 6 USD per month; Yearly 3 USD per month billed 36 USD a year (marked BEST VALUE, red 2px border); Lifetime 120 USD once. Feature lists with check/dash marks: Free = unlimited puzzles at all difficulties, daily puzzle and streak, review any puzzle, 3 techniques to drill, random daily plan. Paid = everything in Free plus all 8 techniques with unlimited drills, personalized daily plan, weak-spot report, coach messages (400 a month), speed run and spot-the-mistake. Below: a short FAQ (what happens if I cancel; refund within 7 days; do I need an account to play). These prices and limits are placeholders, so keep them in one constants file.
+
+ACCESSIBILITY AND QUALITY: responsive from 360px to 1440px, no horizontal scroll on phones. Run npm run build and fix all type errors. Then run the app and check every screen at 390px and 1280px wide in a real browser; take screenshots, fix layout bugs, and tell me what you saw. Commit in small steps.
+
+ORDER OF WORK: design tokens + layout shell + sidebar, then the Board component (show me a screenshot of it before continuing), then Play, Review, Train, Home, Pricing.

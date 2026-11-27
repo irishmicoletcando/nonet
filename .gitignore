@@ -1,0 +1,6 @@
+node_modules/
+.next/
+.env*
+.claude/
+.artifacts/
+*.tsbuildinfo
