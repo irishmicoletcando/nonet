@@ -148,8 +148,9 @@
   min-height: 0;
 }
 
+/* Ink, not red: red on the #FFC9C9 elimination fill is only 4.11:1. The strike carries the meaning. */
 .struck {
-  color: var(--error);
-  text-decoration: line-through;
+  color: var(--ink);
+  text-decoration: line-through var(--error);
   text-decoration-thickness: 1.5px;
 }
